@@ -25,6 +25,30 @@ metadata:
 
 ---
 
+## Critical Pitfall: Natural-Language Cron Commands Don't Reliably Trigger Tool Calls
+
+When a cron job's command is written in natural language (e.g., *"send a notification to the user"*), the spawned agent may not actually call `send_notification`. Natural language is interpreted, not executed — the spawned agent can satisfy the prompt by logging, responding with text, or doing nothing visible.
+
+**Symptom:** The cron run record shows execution completed, but no `send_notification` call appears in the session's tool call log.
+
+### Fix: Write Explicit Tool-Call Instructions
+
+Rewrite the cron command to name the tool and its arguments directly:
+
+> ❌ Bad: `"Send a push notification reminding the user about their 3pm meeting"`
+>
+> ✅ Good: `"Call send_notification with title='Reminder' and body='Your 3pm meeting starts soon'"`
+
+Be as explicit as possible. Include all required fields by name. Even with this approach, tool-call compliance from spawned agents cannot be fully guaranteed from the command alone — but explicit instructions significantly improve reliability.
+
+### Updating a Cron Job
+
+The cron tool does **not** support in-place updates. To change a cron command:
+1. **Delete** the existing job by ID.
+2. **Recreate** it with the corrected command and the same schedule.
+
+---
+
 ## Debugging Workflow
 
 ### Step 1 — Confirm the cron run actually fired
@@ -63,6 +87,7 @@ metadata:
 | Session ID not found in `sessions_history` | Cron sessions aren't indexed in history — check direct status |
 | Run record exists but no tool calls visible | Session thread was cleaned up; check direct session endpoint |
 | Notification received but delayed | Push delivery batching or background app refresh |
+| Cron ran but `send_notification` was never called | Cron command was natural language — rewrite with explicit tool-call instructions |
 
 ---
 
