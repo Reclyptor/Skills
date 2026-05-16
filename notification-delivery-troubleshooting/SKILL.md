@@ -47,6 +47,19 @@ The cron tool does **not** support in-place updates. To change a cron command:
 1. **Delete** the existing job by ID.
 2. **Recreate** it with the corrected command and the same schedule.
 
+#### Timezone Pitfall When Updating a Trigger Time
+
+Cron schedules are expressed in **UTC by default**. Users almost always state times in their **local timezone**. These will silently diverge.
+
+**When a user asks to change a trigger time (e.g., "set it to 9:05 AM"):**
+1. Clarify or confirm the intended timezone before applying the change.
+2. If UTC is assumed, state the UTC value explicitly *and* its local-time equivalent so the user can verify.
+3. Offer to offset the cron expression to match the user's local timezone if UTC is not what they intended.
+
+> ✅ Good response: "Updated to `9:05 AM UTC` — that fires at 5:05 AM Eastern. Is UTC correct, or should I adjust the cron to match your local time?"
+
+Do **not** silently apply a UTC cron expression for a time the user stated without local context, as this is a common and hard-to-debug source of missed or mistimed notifications.
+
 ---
 
 ## Debugging Workflow
@@ -88,6 +101,7 @@ The cron tool does **not** support in-place updates. To change a cron command:
 | Run record exists but no tool calls visible | Session thread was cleaned up; check direct session endpoint |
 | Notification received but delayed | Push delivery batching or background app refresh |
 | Cron ran but `send_notification` was never called | Cron command was natural language — rewrite with explicit tool-call instructions |
+| Notification fires at wrong time | Cron schedule set in UTC but user intended local time — always confirm timezone |
 
 ---
 
